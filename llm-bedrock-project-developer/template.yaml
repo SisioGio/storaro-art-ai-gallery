@@ -1,0 +1,193 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  document-processor-backend
+
+  Sample SAM Template for document-processor-backend
+
+
+Globals:
+  Api:
+    Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+      
+
+      
+Resources:
+
+
+  ProjectsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ProjectsCreationTask
+        AttributeDefinitions:
+          - AttributeName: job_id
+            AttributeType: S
+         
+        KeySchema:
+          - AttributeName: job_id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+
+  BucketDocuments:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'document-processor-upload-files-21342512924'
+
+
+  ProjectsBackgroundFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        Handler: app.lambda_handler
+        Runtime: python3.8
+        CodeUri: src/project_process/
+        Role: !GetAtt LambdaExecutionRole.Arn
+        MemorySize: 512
+        Timeout: 60
+        Environment:
+          Variables:
+            TABLE_NAME: !Ref ProjectsTable
+            BUCKET_NAME: !Ref BucketDocuments
+
+  ProjectStartFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        Handler: app.lambda_handler
+        Runtime: python3.8
+        Role: !GetAtt LambdaExecutionRole.Arn
+        CodeUri: src/project_start/
+        MemorySize: 512
+        Timeout: 30
+        Environment:
+          Variables:
+            TABLE_NAME: !Ref ProjectsTable
+            LAMBDA_PROCESS_PROJECTS: !Ref ProjectsBackgroundFunction
+
+        Events:
+          StartApi:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ApiGateway
+              Path: /project/start
+              Method: POST
+              Auth:
+                  Authorizer: MyLambdaAuthorizer
+
+  ProjectCheckStatusFunction:
+      Type: AWS::Serverless::Function
+      Properties:
+        Handler: app.lambda_handler
+        Runtime: python3.8
+        Role: !GetAtt LambdaExecutionRole.Arn
+        CodeUri: src/project_status/
+        MemorySize: 512
+        Timeout: 30
+        Environment:
+          Variables:
+            TABLE_NAME: !Ref ProjectsTable
+        Events:
+          StartApi:
+            Type: Api
+            Properties:
+              RestApiId: !Ref ApiGateway
+              Path: /project/status
+              Method: GET
+              Auth:
+                  Authorizer: MyLambdaAuthorizer
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: DocumentProcessorAPI
+      Description: API for the Document Processing System
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+      Auth:
+        Authorizers:
+          MyLambdaAuthorizer:
+            FunctionArn: !GetAtt AuthorizerFunction.Arn
+            FunctionPayloadType: REQUEST
+            AuthorizerResultTtlInSeconds: 0
+            Identity:
+              Headers:
+                - Authorization
+          ApiKeyAuthorizer:
+            FunctionArn: !GetAtt ApiKeyAuthorizerFunction.Arn
+            FunctionPayloadType: REQUEST
+            AuthorizerResultTtlInSeconds: 0
+            Identity:
+              Headers:
+                - x-api-key
+
+      MethodSettings:
+        - ResourcePath: "/contact"
+          HttpMethod: "POST"
+          CacheTtlInSeconds: 0
+
+
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 
+                - lambda.amazonaws.com
+            Action: 
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaBedrockDynamoDBPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:PutItem"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:Scan"
+                  - "dynamodb:DeleteItem"
+                Resource:
+                  - !GetAtt DocumentsTable.Arn
+                  - !GetAtt UsersTable.Arn
+                  - !GetAtt DocumentProcessingTable.Arn
+                  - !GetAtt ProjectsTable.Arn
+              - Effect: Allow
+                Action:
+                  - "bedrock:InvokeModel"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource:  "*"
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "ses:SendEmail"
+                  - "ses:SendRawEmail"
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "s3:*"
+                  
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "states:StartExecution"
+                Resource: "*"
+Outputs:
+  ApiUrl:
+    Description: "API Gateway URL"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod"

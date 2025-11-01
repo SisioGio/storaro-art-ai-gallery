@@ -1,0 +1,23 @@
+ 
+
+{
+  "folder_name": "SimpleWebsite",
+  "Files": [
+    {
+      "file_name": "index.html",
+      "file_content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Simple Website</title>\n    <link rel=\"stylesheet\" href=\"css/styles.css\">\n</head>\n<body>\n    <header>\n        <h1>Welcome to Simple Website</h1>\n    </header>\n    <nav>\n        <ul>\n            <li><a href=\"#\">Home</a></li>\n            <li><a href=\"#\">About</a></li>\n            <li><a href=\"#\">Contact</a></li>\n        </ul>\n    </nav>\n    <main>\n        <section>\n            <h2>About Us</h2>\n            <p>This is a simple website created with HTML and CSS.</p>\n        </section>\n    </main>\n    <footer>\n        <p>&copy; 2023 Simple Website. All rights reserved.</p>\n    </footer>\n</body>\n</html>"
+    }
+  ],
+  "Folders": [
+    {
+      "folder_name": "css",
+      "Files": [
+        {
+          "file_name": "styles.css",
+          "file_content": "body {\n    font-family: Arial, sans-serif;\n    line-height: 1.6;\n    margin: 0;\n    padding: 0;\n}\n\nheader {\n    background-color: #333;\n    color: #fff;\n    text-align: center;\n    padding: 1rem;\n}\n\nnav ul {\n    list-style-type: none;\n    padding: 0;\n    background-color: #f4f4f4;\n}\n\nnav ul li {\n    display: inline;\n    margin-right: 10px;\n}\n\nnav ul li a {\n    text-decoration: none;\n    color: #333;\n}\n\nmain {\n    padding: 20px;\n}\n\nfooter {\n    background-color: #333;\n    color: #fff;\n    text-align: center;\n    padding: 1rem;\n    position: fixed;\n    bottom: 0;\n    width: 100%;\n}"
+        }
+      ],
+      "Folders": []
+    }
+  ]
+}
